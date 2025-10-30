@@ -1,0 +1,17 @@
+
+
+
+{
+  "name": "ws-basic",
+  "version": "1.0.0",
+  "description": "Basic WebSocket server example with Node.js",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
