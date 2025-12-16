@@ -1,8 +1,5 @@
-
-
-
 {
-  "name": "ws-basic" ,
+  "name": "ws-basic",
   "version": "1.0.0",
   "description": "Basic WebSocket server example with Node.js",
   "main": "server.js",
@@ -12,6 +9,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "ws": "^8.18.0"
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "ws": "^8.18.3"
   }
 }
