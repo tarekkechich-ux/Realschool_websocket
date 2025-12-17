@@ -5,25 +5,13 @@ class CanalManager {
   constructor() {
     this.canaux = new Map();
     this.socketIndex = new WeakMap();
-    
-    // 🔥 NOUVEAU : Stockage des sockets actives
-    this.allSockets = new Set(); // Pour pouvoir itérer sur les sockets
-    
-    this.HEART_BEATER = null;
+
   }
   
   // 🔥 O(1) - Ajout ultra-rapide
   inscrire(socket, canalName, logicalId) 
   {
-    // 🔥 NOUVEAU : Ajouter le socket à la liste globale
-    this.allSockets.add(socket);
-    
-    // 🔥 LOGIQUE D'ÉLECTION DU HEART_BEATER
-    if (!this.HEART_BEATER) 
-    {
-      console.log("assignHeartBeater lors de l'inscription: "+logicalId);
-      this.assignHeartBeater(socket);
-    }
+
     
     // Créer le canal si inexistant
     if (!this.canaux.has(canalName)) {
@@ -47,35 +35,12 @@ class CanalManager {
     this.socketIndex.get(socket).set(canalName, logicalId);
   }
   
-  // 🔥 NOUVEAU : Méthode pour assigner un heart_beater
-  assignHeartBeater(socket) 
-  {
-    this.HEART_BEATER = socket;
-    let Message = {};
-    Message["MESSAGE_CODE"] = "DELEGATE_KEEP_ALIVE_MISSION";
-    Message["INTERVAL"] = 25000; // 25 secondes
-    
-    const data = JSON.stringify(Message);
-    
-    // Vérifier que le socket est encore ouvert
-    if (socket.readyState === WebSocket.OPEN) 
-    {
-      socket.send(data);
-      
-    } else 
-    {
-     
-      this.HEART_BEATER = null;
-    }
-  }
+
   
-  // 🔥 NOUVEAU : Méthode pour obtenir un ID de socket (pour le logging)
-  getSocketId(socket) {
-    return `socket_${socket._socket?.remoteAddress}:${socket._socket?.remotePort}` || 'unknown';
-  }
-  
+
   // 🔥 O(1) - Retrait rapide
-  desinscrire(socket, canalName, logicalId) {
+  desinscrire(socket, canalName, logicalId)
+  {
     const canal = this.canaux.get(canalName);
     if (!canal) return;
     
@@ -105,79 +70,24 @@ class CanalManager {
   }
 
   // 🔥 O(1) - Retrait complet d'un socket (déconnexion)
-  desinscrireSocket(socket) {
-    // 🔥 PARTIE 3 : Gestion du HEART_BEATER qui se déconnecte
-    if (this.HEART_BEATER === socket) 
-    {
-    // console.log(`⚠️  HeartBeater se déconnecte, recherche d'un remplaçant...`);
-      
-      // Retirer des sockets actives
-      this.allSockets.delete(socket);
-      
-      // Trouver un nouveau socket valide
-      const newHeartBeater = this.findNewHeartBeater();
-      
-      if (newHeartBeater) {
-        this.assignHeartBeater(newHeartBeater);
-      } else {
-        this.HEART_BEATER = null;
-       // console.log(`❌ Aucun socket disponible pour devenir HeartBeater`);
-      }
-    } else 
-    {
-      // Juste retirer le socket normalement
-      this.allSockets.delete(socket);
-    }
-    
+  desinscrireSocket(socket) 
+  {
+
     // Retirer le socket de tous les canaux
     const socketCanaux = this.socketIndex.get(socket);
     if (!socketCanaux) return;
     
     // Parcourir tous les canaux où ce socket était inscrit
-    for (const [canalName, logicalId] of socketCanaux) {
+    for (const [canalName, logicalId] of socketCanaux) 
+    {
       this.desinscrire(socket, canalName, logicalId);
     }
     
   
   }
   
-  // 🔥 NOUVEAU : Trouver un nouveau HeartBeater
-  findNewHeartBeater() 
-  {
-    // Parcourir tous les sockets actifs
-    for (const socket of this.allSockets) 
-    {
-      // Vérifier que le socket est ouvert ET n'est pas le HEART_BEATER actuel
-      if (socket.readyState === WebSocket.OPEN && socket !== this.HEART_BEATER) 
-      {
-       
-        return socket;
-      }
-    }
-    
-    // Aucun socket valide trouvé
-    return null;
-  }
-  
-  // 🔥 NOUVEAU : Vérifier périodiquement que le HeartBeater est toujours actif
-  startHeartbeatMonitoring() 
-  {
-    setInterval(() => 
-    {
-      if (this.HEART_BEATER && this.HEART_BEATER.readyState !== WebSocket.OPEN) 
-      {
-        //console.log(`🚨 HeartBeater inactif détecté, recherche remplaçant...`);
-        const newHeartBeater = this.findNewHeartBeater();
-        
-        if (newHeartBeater) 
-        {
-          this.assignHeartBeater(newHeartBeater);
-        } else {
-          this.HEART_BEATER = null;
-        }
-      }
-    }, 30000); // Vérifier toutes les 30 secondes
-  }
+
+
 
   // 🎯 ENVOI OPTIMISÉ - O(1) pour ciblage précis
   envoyer(canalName, logicalIds, message) 
@@ -230,16 +140,15 @@ class CanalManager {
 
   // 📊 Stats pour monitoring
   getStats() {
-    const stats = {
+    const stats = 
+  {
       totalCanaux: this.canaux.size,
       totalSockets: this.allSockets.size,
-      hasHeartBeater: !!this.HEART_BEATER,
-      heartBeaterStatus: this.HEART_BEATER ? 
-        (this.HEART_BEATER.readyState === WebSocket.OPEN ? 'ACTIVE' : 'INACTIVE') : 'NONE',
       canaux: {}
     };
     
-    this.canaux.forEach((canal, canalName) => {
+    this.canaux.forEach((canal, canalName) => 
+    {
       stats.canaux[canalName] = {
         groupes: canal.size,
         totalSockets: Array.from(canal.values()).reduce((sum, groupe) => sum + groupe.size, 0)
@@ -252,7 +161,7 @@ class CanalManager {
 
 const canalManager = new CanalManager();
 // Démarrer le monitoring du HeartBeater
-canalManager.startHeartbeatMonitoring();
+
 
 // Créez le serveur HTTP explicite
 const server = http.createServer((req, res) => {
