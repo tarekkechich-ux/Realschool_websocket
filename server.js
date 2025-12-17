@@ -21,6 +21,7 @@ class CanalManager {
     // 🔥 LOGIQUE D'ÉLECTION DU HEART_BEATER
     if (!this.HEART_BEATER) 
     {
+      console.log("assignHeartBeater lors de l'inscription: "+logicalId);
       this.assignHeartBeater(socket);
     }
     
@@ -51,7 +52,7 @@ class CanalManager {
   {
     this.HEART_BEATER = socket;
     let Message = {};
-    Message["MESSAGE_ROLE"] = "DELEGATE_KEEP_ALIVE_MISSION";
+    Message["MESSAGE_CODE"] = "DELEGATE_KEEP_ALIVE_MISSION";
     Message["INTERVAL"] = 25000; // 25 secondes
     
     const data = JSON.stringify(Message);
@@ -60,10 +61,10 @@ class CanalManager {
     if (socket.readyState === WebSocket.OPEN) 
     {
       socket.send(data);
-      console.log(`🎯 HeartBeater assigné: ${this.getSocketId(socket)}`);
+      
     } else 
     {
-      console.log(`❌ Impossible d'assigner HeartBeater: socket fermé`);
+     
       this.HEART_BEATER = null;
     }
   }
@@ -106,8 +107,9 @@ class CanalManager {
   // 🔥 O(1) - Retrait complet d'un socket (déconnexion)
   desinscrireSocket(socket) {
     // 🔥 PARTIE 3 : Gestion du HEART_BEATER qui se déconnecte
-    if (this.HEART_BEATER === socket) {
-      console.log(`⚠️  HeartBeater se déconnecte, recherche d'un remplaçant...`);
+    if (this.HEART_BEATER === socket) 
+    {
+    // console.log(`⚠️  HeartBeater se déconnecte, recherche d'un remplaçant...`);
       
       // Retirer des sockets actives
       this.allSockets.delete(socket);
@@ -119,9 +121,10 @@ class CanalManager {
         this.assignHeartBeater(newHeartBeater);
       } else {
         this.HEART_BEATER = null;
-        console.log(`❌ Aucun socket disponible pour devenir HeartBeater`);
+       // console.log(`❌ Aucun socket disponible pour devenir HeartBeater`);
       }
-    } else {
+    } else 
+    {
       // Juste retirer le socket normalement
       this.allSockets.delete(socket);
     }
@@ -135,7 +138,7 @@ class CanalManager {
       this.desinscrire(socket, canalName, logicalId);
     }
     
-    console.log(`🧹 Socket retiré de tous les canaux`);
+  
   }
   
   // 🔥 NOUVEAU : Trouver un nouveau HeartBeater
@@ -147,7 +150,7 @@ class CanalManager {
       // Vérifier que le socket est ouvert ET n'est pas le HEART_BEATER actuel
       if (socket.readyState === WebSocket.OPEN && socket !== this.HEART_BEATER) 
       {
-        console.log(`✅ Nouveau HeartBeater trouvé: ${this.getSocketId(socket)}`);
+       
         return socket;
       }
     }
@@ -163,7 +166,7 @@ class CanalManager {
     {
       if (this.HEART_BEATER && this.HEART_BEATER.readyState !== WebSocket.OPEN) 
       {
-        console.log(`🚨 HeartBeater inactif détecté, recherche remplaçant...`);
+        //console.log(`🚨 HeartBeater inactif détecté, recherche remplaçant...`);
         const newHeartBeater = this.findNewHeartBeater();
         
         if (newHeartBeater) 
@@ -182,7 +185,7 @@ class CanalManager {
     const canal = this.canaux.get(canalName);
     if (!canal) 
     {
-      console.log(`❌ Canal ${canalName} introuvable`);
+     // console.log(`❌ Canal ${canalName} introuvable`);
       return;
     }
 
@@ -301,7 +304,9 @@ wss.on('connection', ws => {
     try {
       Allmessages = JSON.parse(data);
       
-      Allmessages.forEach((message) => {
+      Allmessages.forEach((message) => 
+      {
+        
         switch(message["MESSAGE_ROLE"]) 
         {
           case "SUBSCRIBE":
@@ -332,7 +337,7 @@ wss.on('connection', ws => {
             
           // 🔥 NOUVEAU : Gestion du heartbeat du client désigné
           case "HEARTBEAT_PONG":
-            console.log(`💓 Heartbeat reçu de ${canalManager.getSocketId(ws)}`);
+          //  console.log(`💓 Heartbeat reçu de ${canalManager.getSocketId(ws)}`);
             break;
         }
       });
