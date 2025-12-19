@@ -80,7 +80,26 @@ class CanalManager {
     // Parcourir tous les canaux où ce socket était inscrit
     for (const [canalName, logicalId] of socketCanaux) 
     {
-      this.desinscrire(socket, canalName, logicalId);
+      console.log(logicalId+" disconnected");
+      //Informer aussi les membre de chaque canal par proadcast que le membre est déconnecté
+      //informer aussi le backend principal que le membre est déconnécté ceci pour la mise à jour de la base de donnée
+      let Message={};
+      Message["MESSAGE_ROLE"]="MEMBER_DISCONNECTED";
+      Message["LOGICAL_ID"]=logicalId;
+      this.diffuser(canalName,Message,logicalId);
+
+      ///Message vers le backend principal:
+      
+        fetch('https://realschool.tn/WebSocket_Bridge.php', 
+        {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json', // Indique au PHP que c'est du JSON
+                  'Accept': 'application/json'
+              },
+              body: JSON.stringify(Message) // Convertit l'objet JS en chaîne JSON
+        });
+        this.desinscrire(socket, canalName, logicalId);
     }
     
   
@@ -119,7 +138,10 @@ class CanalManager {
   }
 
   // 🌊 BROADCAST dans tout un canal - O(n) mais nécessaire
-  diffuser(canalName, message, logicalId_Sender) {
+  diffuser(canalName, message, logicalId_Sender) 
+  {
+    
+
     const canal = this.canaux.get(canalName);
     if (!canal) return;
     message["CANAL_NAME"] = canalName;
@@ -136,6 +158,9 @@ class CanalManager {
         });
       }
     });
+
+    console.log("diffuser :  par " +logicalId_Sender);
+    console.log(message);
   }
 
   // 📊 Stats pour monitoring
@@ -208,7 +233,8 @@ const wss = new WebSocket.Server({ server: server });
 wss.on('connection', ws => {
   ws.sessionCode = null;
 
-  ws.on('message', data => {
+  ws.on('message', data => 
+  {
     let Allmessages;
     try {
       Allmessages = JSON.parse(data);
@@ -256,7 +282,8 @@ wss.on('connection', ws => {
     }
   });
 
-  ws.on('close', () => {
+  ws.on('close', () => 
+  {
     canalManager.desinscrireSocket(ws);
   });
 
