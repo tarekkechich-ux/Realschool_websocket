@@ -12,7 +12,7 @@ class CanalManager {
   inscrire(socket, canalName, logicalId) 
   {
 
-    console.log(logicalId+" Connected");
+   
     // Créer le canal si inexistant
     if (!this.canaux.has(canalName)) {
       this.canaux.set(canalName, new Map());
@@ -80,7 +80,7 @@ class CanalManager {
     // Parcourir tous les canaux où ce socket était inscrit
     for (const [canalName, logicalId] of socketCanaux) 
     {
-      console.log(logicalId+" Disconnected");
+      
       //Informer aussi les membre de chaque canal par proadcast que le membre est déconnecté
       //informer aussi le backend principal que le membre est déconnécté ceci pour la mise à jour de la base de donnée
       let Message={};
