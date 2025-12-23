@@ -90,6 +90,7 @@ class CanalManager {
 
       ///Message vers le backend principal:
       
+      /*
         fetch('https://realschool.tn/WebSocket_Bridge.php', 
         {
               method: 'POST',
@@ -99,6 +100,9 @@ class CanalManager {
               },
               body: JSON.stringify(Message) // Convertit l'objet JS en chaîne JSON
         });
+      */
+
+
         this.desinscrire(socket, canalName, logicalId);
     }
     
