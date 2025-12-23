@@ -90,7 +90,7 @@ class CanalManager {
 
       ///Message vers le backend principal:
       
-        fetch('http://127.0.0.1/WebSocket_Bridge.php', 
+        fetch('https://realschool.tn/WebSocket_Bridge.php', 
         {
               method: 'POST',
               headers: {
@@ -150,12 +150,17 @@ class CanalManager {
   let delay = 0;
   let count = 0;
   
-  canal.forEach((groupe, logicalId) => {
-    if (logicalId != logicalId_Sender) {
-      groupe.forEach(socket => {
-        if (socket.readyState === WebSocket.OPEN) {
+  canal.forEach((groupe, logicalId) => 
+  {
+    if (logicalId != logicalId_Sender) 
+    {
+      groupe.forEach(socket => 
+      {
+        if (socket.readyState === WebSocket.OPEN) 
+        {
           // 🔥 CLÉ: delay différent pour chaque socket
-          setTimeout(() => {
+          setTimeout(() => 
+          {
             socket.send(data);
           }, delay);
           
