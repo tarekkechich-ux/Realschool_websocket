@@ -90,7 +90,7 @@ class CanalManager {
 
       ///Message vers le backend principal:
       
-        fetch('https://realschool.tn/WebSocket_Bridge.php', 
+        fetch('http://127.0.0.1/WebSocket_Bridge.php', 
         {
               method: 'POST',
               headers: {
@@ -139,28 +139,35 @@ class CanalManager {
 
   // 🌊 BROADCAST dans tout un canal - O(n) mais nécessaire
   diffuser(canalName, message, logicalId_Sender) 
-  {
-    
-
-    const canal = this.canaux.get(canalName);
-    if (!canal) return;
-    message["CANAL_NAME"] = canalName;
-    const data = JSON.stringify(message);
-    let envoyes = 0;
-    
-    canal.forEach((groupe, logicalId) => {
-      if (logicalId != logicalId_Sender) {
-        groupe.forEach(socket => {
-          if (socket.readyState === WebSocket.OPEN) {
+{
+  const canal = this.canaux.get(canalName);
+  if (!canal) return;
+  
+  message["CANAL_NAME"] = canalName;
+  const data = JSON.stringify(message);
+  const throttleMs = message["THROTTELING"] || 0;
+  
+  let delay = 0;
+  let count = 0;
+  
+  canal.forEach((groupe, logicalId) => {
+    if (logicalId != logicalId_Sender) {
+      groupe.forEach(socket => {
+        if (socket.readyState === WebSocket.OPEN) {
+          // 🔥 CLÉ: delay différent pour chaque socket
+          setTimeout(() => {
             socket.send(data);
-            envoyes++;
-          }
-        });
-      }
-    });
-
- 
-  }
+          }, delay);
+          
+          delay += throttleMs; // Incrémenter pour le prochain
+          count++;
+        }
+      });
+    }
+  });
+  
+  
+}
 
   // 📊 Stats pour monitoring
   getStats() {
