@@ -1,10 +1,15 @@
 const http = require('http');
 const WebSocket = require('ws');
 
-class CanalManager {
-  constructor() {
+class CanalManager 
+{
+  constructor() 
+  {
     this.canaux = new Map();
     this.socketIndex = new WeakMap();
+
+    this.notificationQueue = [];
+    this.isProcessingQueue = false;
 
   }
   
@@ -70,7 +75,7 @@ class CanalManager {
   }
 
   // 🔥 O(1) - Retrait complet d'un socket (déconnexion)
-  desinscrireSocket(socket) 
+  async desinscrireSocket(socket) 
   {
 
     // Retirer le socket de tous les canaux
@@ -101,7 +106,7 @@ class CanalManager {
               body: JSON.stringify(Message) // Convertit l'objet JS en chaîne JSON
         });
       */
-
+        this.addToNotificationQueue(Message);
 
         this.desinscrire(socket, canalName, logicalId);
     }
@@ -110,7 +115,60 @@ class CanalManager {
   }
   
 
+  addToNotificationQueue(task) 
+  {
+    this.notificationQueue.push(task);
+    if (!this.isProcessingQueue) 
+    {
+      this.processQueue();
+    }
+  }
 
+
+
+
+
+   async processQueue() 
+   {
+        this.isProcessingQueue = true;
+        
+        while (this.notificationQueue.length > 0) 
+        {
+            const task = this.notificationQueue.shift();
+            
+            try 
+            {
+                // Appel asynchrone avec timeout explicite
+                await fetch('https://realschool.tn/WebSocket_Bridge.php', 
+                {
+                    method: 'POST',
+                    headers: 
+                    {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(task),
+                    // Timeout pour éviter qu'une requête ne bloque tout
+                    signal: AbortSignal.timeout(2000) // 3 secondes max
+                });
+                
+                // Petite pause entre les requêtes pour lisser la charge
+                await this.sleep(100); // 100ms
+                
+            } catch (error) 
+            {
+                //console.error('Échec de la notification backend:', error);
+                // Option: ré-essayer plus tard ou journaliser l'erreur
+            }
+        }
+        
+        this.isProcessingQueue = false;
+    }
+    
+    sleep(ms) 
+    {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
 
   // 🎯 ENVOI OPTIMISÉ - O(1) pour ciblage précis
   envoyer(canalName, logicalIds, message) 
@@ -143,43 +201,44 @@ class CanalManager {
 
   // 🌊 BROADCAST dans tout un canal - O(n) mais nécessaire
   diffuser(canalName, message, logicalId_Sender) 
-{
-  const canal = this.canaux.get(canalName);
-  if (!canal) return;
-  
-  message["CANAL_NAME"] = canalName;
-  const data = JSON.stringify(message);
-  const throttleMs = message["THROTTELING"] || 0;
-  
-  let delay = 0;
-  let count = 0;
-  
-  canal.forEach((groupe, logicalId) => 
   {
-    if (logicalId != logicalId_Sender) 
+    const canal = this.canaux.get(canalName);
+    if (!canal) return;
+    
+    message["CANAL_NAME"] = canalName;
+    const data = JSON.stringify(message);
+    const throttleMs = message["THROTTELING"] || 0;
+    
+    let delay = 0;
+    let count = 0;
+    
+    canal.forEach((groupe, logicalId) => 
     {
-      groupe.forEach(socket => 
+      if (logicalId != logicalId_Sender) 
       {
-        if (socket.readyState === WebSocket.OPEN) 
+        groupe.forEach(socket => 
         {
-          // 🔥 CLÉ: delay différent pour chaque socket
-          setTimeout(() => 
+          if (socket.readyState === WebSocket.OPEN) 
           {
-            socket.send(data);
-          }, delay);
-          
-          delay += throttleMs; // Incrémenter pour le prochain
-          count++;
-        }
-      });
-    }
-  });
-  
-  
-}
+            // 🔥 CLÉ: delay différent pour chaque socket
+            setTimeout(() => 
+            {
+              socket.send(data);
+            }, delay);
+            
+            delay += throttleMs; // Incrémenter pour le prochain
+            count++;
+          }
+        });
+      }
+    });
+    
+    
+  }
 
   // 📊 Stats pour monitoring
-  getStats() {
+  getStats() 
+  {
     const stats = 
   {
       totalCanaux: this.canaux.size,
