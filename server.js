@@ -93,9 +93,10 @@ class CanalManager
       Message["LOGICAL_ID"]=logicalId;
       this.diffuser(canalName,Message,logicalId);
 
+      let CODED_MESSAGE=JSON.stringify(Message);
       ///Message vers le backend principal:
       
-      /*
+      
         fetch('https://realschool.tn/WebSocket_Bridge.php', 
         {
               method: 'POST',
@@ -103,9 +104,9 @@ class CanalManager
                   'Content-Type': 'application/json', // Indique au PHP que c'est du JSON
                   'Accept': 'application/json'
               },
-              body: JSON.stringify(Message) // Convertit l'objet JS en chaîne JSON
-        });
-      */
+              body: CODED_MESSAGE // Convertit l'objet JS en chaîne JSON
+        }).catch(() => {});
+      
         this.addToNotificationQueue(Message);
 
         this.desinscrire(socket, canalName, logicalId);
