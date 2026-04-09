@@ -82,6 +82,9 @@ class CanalManager
     const socketCanaux = this.socketIndex.get(socket);
     if (!socketCanaux) return;
     
+    // Eviter de notifier plusieurs fois le backend pour le meme LOGICAL_ID
+    const notifiedLogicalIds = new Set();
+    
     // Parcourir tous les canaux où ce socket était inscrit
     for (const [canalName, logicalId] of socketCanaux) 
     {
@@ -92,22 +95,13 @@ class CanalManager
       Message["MESSAGE_ROLE"]="MEMBER_DISCONNECTED";
       Message["LOGICAL_ID"]=logicalId;
       this.diffuser(canalName,Message,logicalId);
-
-      let CODED_MESSAGE=JSON.stringify(Message);
-      ///Message vers le backend principal:
-      
-      
-        fetch('https://realschool.tn/WebSocket_Bridge.php', 
-        {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json', // Indique au PHP que c'est du JSON
-                  'Accept': 'application/json'
-              },
-              body: CODED_MESSAGE // Convertit l'objet JS en chaîne JSON
-        }).catch(() => {});
-      
+    
+      // Notifier le backend une seule fois par LOGICAL_ID
+      if (!notifiedLogicalIds.has(logicalId)) 
+      {
         this.addToNotificationQueue(Message);
+        notifiedLogicalIds.add(logicalId);
+      }
 
         this.desinscrire(socket, canalName, logicalId);
     }
@@ -125,11 +119,7 @@ class CanalManager
     }
   }
 
-
-
-
-
-   async processQueue() 
+   processQueue() 
    {
         this.isProcessingQueue = true;
         
@@ -137,34 +127,23 @@ class CanalManager
         {
             const task = this.notificationQueue.shift();
             
-            try 
+            // Fire-and-forget : ne pas attendre la reponse
+            fetch('https://realschool.tn/WebSocket_Bridge.php', 
             {
-                // Appel asynchrone avec timeout explicite
-                await fetch('https://realschool.tn/WebSocket_Bridge.php', 
+                method: 'POST',
+                headers: 
                 {
-                    method: 'POST',
-                    headers: 
-                    {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(task),
-                    // Timeout pour éviter qu'une requête ne bloque tout
-                    signal: AbortSignal.timeout(2000) // 3 secondes max
-                });
-                
-                // Petite pause entre les requêtes pour lisser la charge
-                await this.sleep(100); // 100ms
-                
-            } catch (error) 
-            {
-                //console.error('Échec de la notification backend:', error);
-                // Option: ré-essayer plus tard ou journaliser l'erreur
-            }
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(task),
+                // Timeout pour eviter qu'une requete ne bloque trop longtemps
+                signal: AbortSignal.timeout(2000) // 3 secondes max
+            }).catch(() => {});
         }
         
         this.isProcessingQueue = false;
-    }
+  }
     
     sleep(ms) 
     {
